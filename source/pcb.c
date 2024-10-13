@@ -176,7 +176,7 @@ Block *terminateBlock(Block *p)
 
     if (!p)
     {
-        fprintf(stderr, "ERROR: Can not terminate a NULL process\n");
+        fprintf(stderr, "ERROR: Cannot terminate a NULL process\n");
         return NULL;
     }
     else
@@ -186,6 +186,48 @@ Block *terminateBlock(Block *p)
         p->status = PCB_TERMINATED;
         return p;
     }
+}
+
+/*
+DESCRIPTION:
+    - Resumes the block from the suspended state using SIGCONT. 
+
+RETURNS:
+    + Block* of the block that was resumed.
+    + NULL if couldn't resume? Assuming the process pointer is already NULL.
+*/
+Block *resumeBlock(Block *p){
+    if(!p){
+        fprintf(stderr, "ERROR: Cannot resume a NULL process\n");
+        return NULL;
+    }else{
+        kill(p->pid, SIGCONT);
+        p->status = PCB_RUNNING;
+    }
+
+    return p;
+}
+
+/*
+DESCRIPTION:
+    - Suspends/pauses a block
+
+RETURNS:
+    + Block* of the block that was resumed.
+    + NULL if couldn't resume?
+*/
+Block *suspendBlock(Block *p){
+    int status;
+    if(!p){
+        fprintf(stderr, "ERROR: Cannot suspend a NULL process\n");
+        return NULL;
+    }else{
+        kill(p->pid, SIGTSTP);
+        waitpid(p->pid, &status, WUNTRACED);
+        p->status = PCB_SUSPENDED;
+    }
+
+    return p;
 }
 
 /*

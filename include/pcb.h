@@ -73,6 +73,8 @@ Block *enqueueBlock(Block *, Block *);
 Block *dequeueBlock(Block **);
 Block *startBlock(Block *);
 Block *terminateBlock(Block *);
+Block *resumeBlock(Block *);
+Block *suspendBlock(Block *);
 Block *printBlock(Block *);
 void printBlockHeader(void);
 

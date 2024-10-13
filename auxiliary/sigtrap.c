@@ -239,7 +239,7 @@ static void SignalHandler(int sig)        // trap signals from shell/system
         case SIGCONT:
             signal_SIGCONT = TRUE;
             break;
-	case SIGTSTP:
+	    case SIGTSTP:
             signal_SIGTSTP = TRUE;
             break;
         case SIGABRT:
