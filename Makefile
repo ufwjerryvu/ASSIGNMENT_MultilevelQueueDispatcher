@@ -1,8 +1,8 @@
+CC=gcc
 SRC_DIR=source
 INCL_DIR=include
 AUX_DIR=auxiliary
 TESTS_DIR=tests
-
 IN_FILE_NO=1
 
 SRC_FILES=$(SRC_DIR)/pcb.c $(SRC_DIR)/fcfs.c
@@ -12,12 +12,12 @@ all: CompileProcess CompileDispatcher GenerateRandom
 
 # Compiles the signal trapping process.
 CompileProcess:
-	gcc $(AUX_DIR)/sigtrap.c -o process
+	$(CC) $(AUX_DIR)/sigtrap.c -o process
 
 # Compiles the dispatcher (our main program)
 CompileDispatcher:
-	gcc -I$(INCL_DIR) -c $(SRC_FILES)
-	gcc *.o -o dispatcher
+	$(CC) -I$(INCL_DIR) -c $(SRC_FILES)
+	$(CC) *.o -o dispatcher
 
 # Executes the dispatcher program under the default jobs file
 ExecuteProgram:
@@ -25,11 +25,12 @@ ExecuteProgram:
 
 # Generates random jobs list based on the numbered inputs
 GenerateRandom:
-	gcc $(SRC_DIR)/random.c -lm -o random
+	$(CC) $(SRC_DIR)/random.c -lm -o random
 	cat $(TESTS_DIR)/params-$(IN_FILE_NO).in | ./random jobs.txt > /dev/null
 
 # Cleans all generated files
-CleanAll: ObjectClean BinaryClean JobsClean
+CleanAll: CleanObjs CleanBins CleanJobs
+	clear
 
 # Cleans object files
 CleanObjs:
