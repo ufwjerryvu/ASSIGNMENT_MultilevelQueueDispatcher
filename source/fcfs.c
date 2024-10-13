@@ -8,16 +8,16 @@
 */
 
 /* Include files */
-#include "fcfs.h"
+#include <fcfs.h>
 
 int main (int argc, char *argv[])
 {
     /*** Main function variable declarations ***/
 
     FILE * input_list_stream = NULL;
-    PcbPtr fcfs_queue = NULL;
-    PcbPtr current_process = NULL;
-    PcbPtr process = NULL;
+    Block* fcfs_queue = NULL;
+    Block* current_process = NULL;
+    Block* process = NULL;
     int timer = 0;
 
     int turnaround_time, response_time;
@@ -44,7 +44,7 @@ int main (int argc, char *argv[])
     }
 
     while (!feof(input_list_stream)) {  // put processes into fcfs_queue
-        process = createnullPcb();
+        process = createNullBlock();
         if (fscanf(input_list_stream,"%d, %d",
              &(process->arrival_time), 
              &(process->service_time)) != 2) {
@@ -53,7 +53,7 @@ int main (int argc, char *argv[])
         }
         process->remaining_cpu_time = process->service_time;
         process->status = PCB_INITIALIZED;
-        fcfs_queue = enqPcb(fcfs_queue, process);
+        fcfs_queue = enqueueBlock(fcfs_queue, process);
         n++;
     }
 
@@ -72,7 +72,7 @@ int main (int argc, char *argv[])
             if (current_process->remaining_cpu_time <= 0)
             {
 //              A. Terminate the process;
-                terminatePcb(current_process);
+                terminateBlock(current_process);
 
 //		        calculate and acumulate turnaround time and wait time
                 turnaround_time = timer - current_process->arrival_time;
@@ -89,8 +89,8 @@ int main (int argc, char *argv[])
         if (!current_process && fcfs_queue && fcfs_queue->arrival_time <= timer)
         {
 //          Dequeue the process at the head of the queue, set it as currently running and start it
-            current_process = deqPcb(&fcfs_queue);
-            startPcb(current_process);
+            current_process = dequeueBlock(&fcfs_queue);
+            startBlock(current_process);
             response_time = timer - current_process->arrival_time;
             av_response_time += response_time;
         }

@@ -12,7 +12,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "pcb.h"
+#include <pcb.h>
 
 #ifndef FALSE
 #define FALSE 0

@@ -1,116 +1,174 @@
-/* PCB management functions for FCFS dispatcher */
+#include <pcb.h>
 
-/* Include Files */
-#include "pcb.h"
+/*
+DESCRIPTION:
+    - Creates an inactive block. Initializes everything to default values which
+    are not usable unless reassigned.
 
-/*******************************************************
- * PcbPtr createnullPcb() - create inactive Pcb.
- *
- * returns:
- *    PcbPtr of newly initialised Pcb
- *    NULL if malloc failed
- ******************************************************/
-PcbPtr createnullPcb()
+RETURNS:
+    + Block* of newly initilaized Block.
+    + NULL if failed at allocating memory.
+*/
+Block *createNullBlock()
 {
-    PcbPtr new_process_Ptr;
-    if (!(new_process_Ptr = (PcbPtr)malloc(sizeof(Pcb))))
+    Block *block;
+    if (!(block = (Block *)malloc(sizeof(Block))))
     {
         fprintf(stderr, "ERROR: Could not create new process control block\n");
         return NULL;
     }
-    new_process_Ptr->pid = 0;
-    new_process_Ptr->args[0] = "./process";
-    new_process_Ptr->args[1] = NULL;
-    new_process_Ptr->arrival_time = 0;
-    new_process_Ptr->service_time = 0;
-    new_process_Ptr->remaining_cpu_time = 0;
-    new_process_Ptr->status = PCB_UNINITIALIZED;
-    new_process_Ptr->next = NULL;
-    return new_process_Ptr;
+    block->pid = 0;
+    block->args[PCB_ARGS_PNAME] = "./process";
+    block->args[PCB_ARGS_ENDNULL] = NULL;
+
+    /*
+    NOTE:
+        - Everything is initialized to zero at the very beginning but we need
+        to rework the values later on when we're working with them.
+    */
+    block->arrival_time = 0;
+    block->service_time = 0;
+    block->remaining_cpu_time = 0;
+    block->last_active_time = 0;
+
+    /*
+    NOTE:
+        - Block status is defined in the macros section in the header file of
+        the same name.
+    */
+    block->status = PCB_UNINITIALIZED;
+    block->next = NULL;
+
+    return block;
 }
 
-/*******************************************************
- * PcbPtr enqPcb (PcbPtr headofQ, PcbPtr process)
- *    - queue process (or join queues) at end of queue
- *
- * returns head of queue
- ******************************************************/
-PcbPtr enqPcb(PcbPtr q, PcbPtr p)
+/*
+DESCRIPTION:
+    - Queues process (or join queues at the end of the queue). The value `q` is
+    the head of the queue and `p` is the process. Everything is in a linked list
+    type of data structure.
+
+RETURNS:
+    + Pointer to the head of the queue.
+*/
+Block *enqueueBlock(Block *q, Block *p)
 {
-    PcbPtr h = q;
-    
-    p->next = NULL; 
-    if (q) {
-        while (q->next) q = q->next;
+    Block *h = q;
+
+    p->next = NULL;
+
+    if (q)
+    {
+        while (q->next)
+            q = q->next;
         q->next = p;
         return h;
     }
+
     return p;
 }
 
-/*******************************************************
- * PcbPtr deqPcb (PcbPtr * headofQ);
- *    - dequeue process - take Pcb from head of queue.
- *
- * returns:
- *    PcbPtr if dequeued,
- *    NULL if queue was empty
- *    & sets new head of Q pointer in adrs at 1st arg
- *******************************************************/
-PcbPtr deqPcb(PcbPtr * hPtr)
+/*
+DESCRIPTION:
+    - Dequeues the process. This takes a block from the head of the queue and
+    the input takes in the pointer to the head of the queue which is denoted
+    as `h`. It also sets new head of the queue.
+
+RETURNS:
+    + Block* if successfully dequeued.
+    + NULL if queue was empty.
+*/
+Block *dequeueBlock(Block **h)
 {
-    PcbPtr p;
-     
-    if (hPtr && (p = * hPtr)) {
-        * hPtr = p->next;
+    Block *p;
+
+    if (h && (p = *h))
+    {
+        *h = p->next;
         return p;
     }
+
     return NULL;
 }
 
-/*******************************************************
- * PcbPtr startPcb(PcbPtr process) - start (or restart)
- *    a process
- * returns:
- *    PcbPtr of process
- *    NULL if start (restart) failed
- ******************************************************/
-PcbPtr startPcb (PcbPtr p)
+/*
+DESCRIPTION:
+    - Starts or restarts a process based on the input block `p` that is provided
+    as the argument to the function.
+
+RETURNS:
+    + Block* of the process.
+    + NULL if start/restart has failed.
+*/
+Block *startBlock(Block *p)
 {
-    if (p->pid == 0) // not yet started
+    if (!p->pid)
     {
-        switch (p->pid = fork()) //so start it
-        {
-            case -1:
-                fprintf(stderr, "FATAL: Could not fork process!\n");
-                exit(EXIT_FAILURE);
-            case 0: 			//child
-                p->pid = getpid();
-                p->status = PCB_RUNNING;
-                printPcbHdr();
-                printPcb(p);
-                fflush(stdout);
-                execv(p->args[0], p->args);
-                fprintf(stderr, "ALERT: You should never see me!\n");
-                exit(EXIT_FAILURE);
+        /*
+        NOTE:
+            - If the process has not yet been started so we need to fork the
+            process and start it
+        */
+        p->pid = fork();
+        if(p->pid > 0){
+            /*
+            NOTE:
+                - We are in the parent process, we simply do nothing. Let it
+                break out of the loop naturally.
+            */
+        }else if(p->pid < 0){
+            fprintf(stderr, "FATAL: Could not fork process!\n");
+            exit(EXIT_FAILURE);
+        }else{
+            /*
+            NOTE:
+                - We are now in the child process if the process ID is a zero.
+                This is again defined in the macros section.
+            */
+            p->pid = getpid();
+            p->status = PCB_RUNNING;
+
+            /*
+            NOTE:
+                - Print out the block header before we replace it completely w-
+                ith a different process.
+            */
+            printBlockHeader();
+            printBlock(p);
+            fflush(stdout);
+
+            execv(p->args[PCB_ARGS_PNAME], p->args);
+            fprintf(stderr, "ALERT: You should never see me!\n");
+
+            exit(EXIT_FAILURE);
         }
+        
     }
-    else  // already started, so continue
+    else 
     {
+        /*
+        NOTE:
+            - It's already started so just let it continue and we send a SIGCONT
+            signal to notify the child process of that.
+        */
         kill(p->pid, SIGCONT);
     }
+
     p->status = PCB_RUNNING;
+
     return p;
 }
 
-/*******************************************************
- * PcbPtr terminatePcb(PcbPtr process) - terminate
- *    a process
- * returns:
- *    PcbPtr of process
- *    NULL if termination failed
- ******************************************************/
-PcbPtr terminatePcb(PcbPtr p)
+/*
+DESCRIPTION:
+    - Terminates a block or a process. Sends a kill() signal to the process with
+    the given process ID.
+
+RETURNS:
+    + Block* of the process.
+    + NULL if termination failed.
+*/
+Block *terminateBlock(Block *p)
 {
     int status;
 
@@ -128,51 +186,61 @@ PcbPtr terminatePcb(PcbPtr p)
     }
 }
 
-/*******************************************************
- * PcbPtr printPcb(PcbPtr process)
- *  - print process attributes on stdout
- *  returns:
- *    PcbPtr of process
- ******************************************************/
-PcbPtr printPcb(PcbPtr p)
+/*
+DESCRIPTION:
+    - Prints process attributes to standard output.
+
+RETURNS:
+    + Block* of the process.
+*/
+Block *printBlock(Block *p)
 {
     printf("%7d%7d%9d%7d  ",
-        (int) p->pid, p->arrival_time, p->service_time,
-            p->remaining_cpu_time);
-    switch (p->status) {
-        case PCB_UNINITIALIZED:
-            printf("UNINITIALIZED");
-            break;
-        case PCB_INITIALIZED:
-            printf("INITIALIZED");
-            break;
-        case PCB_READY:
-            printf("READY");
-            break;
-        case PCB_RUNNING:
-            printf("RUNNING");
-            break;
-        case PCB_SUSPENDED:
-            printf("SUSPENDED");
-            break;
-        case PCB_TERMINATED:
-            printf("PCB_TERMINATED");
-            break;
-        default:
-            printf("UNKNOWN");
+           (int)p->pid, p->arrival_time, p->service_time,
+           p->remaining_cpu_time);
+
+    switch (p->status)
+    {
+    /*
+    NOTE:
+        - Just printing out the status of the process control block based on the
+        macros defined for these PCBs.
+    */
+    case PCB_UNINITIALIZED:
+        printf("UNINITIALIZED");
+        break;
+    case PCB_INITIALIZED:
+        printf("INITIALIZED");
+        break;
+    case PCB_READY:
+        printf("READY");
+        break;
+    case PCB_RUNNING:
+        printf("RUNNING");
+        break;
+    case PCB_SUSPENDED:
+        printf("SUSPENDED");
+        break;
+    case PCB_TERMINATED:
+        printf("TERMINATED");
+        break;
+    default:
+        printf("UNKNOWN");
     }
     printf("\n");
-    
-    return p;     
+
+    return p;
 }
 
-/*******************************************************
- * void printPcbHdr() - print header for printPcb
- *  returns:
- *    void
- ******************************************************/
-void printPcbHdr()
-{  
-    printf("    pid arrive  service    cpu  status\n");
+/*
+DESCRIPTION:
+    - Prints the header. This goes hand-in-hand with the function `printBlock()`
+    as it provides the header for readability.
 
+RETURNS:
+    + Nothing.
+*/
+void printBlockHeader()
+{
+    printf("    pid arrive  service    cpu  status\n");
 }
