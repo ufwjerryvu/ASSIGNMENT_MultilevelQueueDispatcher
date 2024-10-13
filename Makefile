@@ -5,7 +5,7 @@ AUX_DIR=auxiliary
 TESTS_DIR=tests
 IN_FILE_NO=1
 
-SRC_FILES=$(SRC_DIR)/pcb.c $(SRC_DIR)/fcfs.c
+SRC_FILES=$(SRC_DIR)/pcb.c $(SRC_DIR)/disp.c
 
 # Compiles and does everything except for running and cleaning
 all: CompileProcess CompileDispatcher GenerateRandom

@@ -1,3 +1,10 @@
 docs/
 bin/
 auxiliary/
+
+*.o
+*.txt
+
+dispatcher
+process
+random

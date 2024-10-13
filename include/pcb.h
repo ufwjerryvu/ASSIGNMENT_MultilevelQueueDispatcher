@@ -39,6 +39,11 @@ SECTION 3: PROCESS MANAGEMENT MACROS
 #define PCB_ARGS_PNAME (0)
 #define PCB_ARGS_ENDNULL (1)
 
+#define PCB_DEFAULT_PRIORITY (-1)
+#define PCB_PRIORITY_0 (0)
+#define PCB_PRIORITY_1 (1)
+#define PCB_PRIORITY_2 (2)
+
 /*
 SECTION 4: PROCESS CONTROL BLOCK STRUCTURE
 */
@@ -51,7 +56,8 @@ struct Process
     int service_time;
     int remaining_cpu_time;
     int last_active_time;
-
+    
+    int priority;
     int status;
 
     struct Process *next;

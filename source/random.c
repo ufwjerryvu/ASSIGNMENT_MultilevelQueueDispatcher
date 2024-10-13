@@ -103,8 +103,9 @@ int main (int argc, char *argv[])
         u = rand()/(double)((long long)RAND_MAX+1);
         y = 1 + floor(log(1 - u)/(-1 * lambda_service));
 
+        int z = rand() % 3;
         /* Save the generated values to the output file */
-        fprintf(output_stream, "%d, %d\n", x, y);
+        fprintf(output_stream, "%d, %d, %d\n", x, y, z);
     }
     fclose(output_stream);
     exit(EXIT_SUCCESS);    

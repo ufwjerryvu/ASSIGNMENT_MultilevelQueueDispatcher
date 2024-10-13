@@ -30,12 +30,14 @@ Block *createNullBlock()
     block->service_time = 0;
     block->remaining_cpu_time = 0;
     block->last_active_time = 0;
+    block->priority = 0;
 
     /*
     NOTE:
         - Block status is defined in the macros section in the header file of
         the same name.
     */
+    block->priority = PCB_DEFAULT_PRIORITY;
     block->status = PCB_UNINITIALIZED;
     block->next = NULL;
 
@@ -195,9 +197,9 @@ RETURNS:
 */
 Block *printBlock(Block *p)
 {
-    printf("%7d%7d%9d%7d  ",
+    printf("%7d%7d%9d%7d%13d%10d    ",
            (int)p->pid, p->arrival_time, p->service_time,
-           p->remaining_cpu_time);
+           p->remaining_cpu_time, p->last_active_time, p->priority);
 
     switch (p->status)
     {
@@ -242,5 +244,5 @@ RETURNS:
 */
 void printBlockHeader()
 {
-    printf("    pid arrive  service    cpu  status\n");
+    printf("    pid arrive  service    cpu  last_active  priority   status\n");
 }
