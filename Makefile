@@ -20,7 +20,7 @@ CompileDispatcher:
 	$(CC) *.o -o dispatcher
 
 # Executes the dispatcher program under the default jobs file
-ExecuteProgram:
+ExecuteProgram: all
 	./dispatcher jobs.txt
 
 # Generates random jobs list based on the numbered inputs

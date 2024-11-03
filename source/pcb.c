@@ -30,6 +30,7 @@ Block *createNullBlock()
     block->service_time = 0;
     block->remaining_cpu_time = 0;
     block->last_active_time = 0;
+    block->cycle_time = 0;
     block->priority = 0;
 
     /*
@@ -201,8 +202,10 @@ Block *resumeBlock(Block *p){
         fprintf(stderr, "ERROR: Cannot resume a NULL process\n");
         return NULL;
     }else{
-        kill(p->pid, SIGCONT);
         p->status = PCB_RUNNING;
+        printBlockHeader();
+        printBlock(p);
+        kill(p->pid, SIGCONT);
     }
 
     return p;

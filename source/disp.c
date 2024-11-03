@@ -1,157 +1,5 @@
 #include <disp.h>
 
-/*
-DESCRIPTION:
-    - Reads the job dispatch queue from the jobs file and stores it in a queue.
-
-RETURNS:
-    + Block* which is the head of a newly initialized queue.
-    + NULL if file is unable to be read.
-*/
-Block *initializeJobDispatchQueue(char *filename)
-{
-    FILE *file = fopen(filename, "r");
-
-    if (!file)
-    {
-        return NULL;
-    }
-
-    Block *jobs = NULL;
-    Block *process = NULL;
-    while (!feof(file))
-    {
-        process = createNullBlock();
-
-        /*
-        NOTE:
-            - Read in the arguments and if the arguments don't match then we
-            have a problem. Free the block and go to the next input.
-        */
-        if (fscanf(file, "%d, %d, %d", &(process->arrival_time),
-                   &(process->service_time), &(process->priority)) != JOBS_SPLIT_COUNT)
-        {
-            free(process);
-            continue;
-        }
-        process->remaining_cpu_time = process->service_time;
-        process->status = PCB_INITIALIZED;
-
-        jobs = enqueueBlock(jobs, process);
-    }
-
-    return jobs;
-}
-
-/*
-DESCRIPTION:
-    - Counts the total number of jobs by traversing through the linked list
-    recursively.
-
-RETURNS:
-    + The total number of jobs
-*/
-uint64_t countTotalJobs(Block *head)
-{
-    if (!head)
-    {
-        return 0;
-    }
-
-    return 1 + countTotalJobs(head->next);
-}
-
-/*
-DESCRIPTION:
-    - Prints out everything in a queue for testing purposes.
-
-RETURN:
-    + Nothing
-*/
-void printQueue(Block *head)
-{
-    Block *current = head;
-    printBlockHeader();
-
-    while (current)
-    {
-        printBlock(current);
-        current = current->next;
-    }
-}
-
-/*
-DESCRIPTION:
-    - Gets user input `t0`, `t1`, `t2`, and `W`. Modifies the pointers passed
-    into the function. It ensures that all integers are positive.
-
-RETURN:
-    + Nothing.
-*/
-void getUserInput(unsigned int *t0, unsigned int *t1, unsigned int *t2,
-                  unsigned int *W)
-{
-
-    /*
-    NOTE:
-        - Loop over until the input is valid for `t0`. Must be a positive integ-
-        er and must be a valid parse.
-    */
-    while (TRUE)
-    {
-        printf("Enter time quantum for Level-0 (t0): ");
-        if (scanf("%u", t0) && *t0 > 0)
-            break;
-        printf("ERROR: Enter a positive integer\n");
-        while (getchar() != '\n')
-            ;
-    }
-
-    /*
-    NOTE:
-        - Loop over until the input is valid for `t1`. Must be a positive integ-
-        er and must be a valid parse.
-    */
-    while (TRUE)
-    {
-        printf("Enter time quantum for Level-1 (t1): ");
-        if (scanf("%u", t1) && *t1 > 0)
-            break;
-        printf("ERROR: Enter a positive integer\n");
-        while (getchar() != '\n')
-            ;
-    }
-
-    /*
-    NOTE:
-        - Loop over until the input is valid for `t2`. Must be a positive integ-
-        er and must be a valid parse.
-    */
-    while (TRUE)
-    {
-        printf("Enter time quantum for Level-2 (t2): ");
-        if (scanf("%u", t2) && *t2 > 0)
-            break;
-        printf("ERROR: Enter a positive integer\n");
-        while (getchar() != '\n')
-            ;
-    }
-
-    /*
-    NOTE:
-        - Loop over until the input is valid for `W`. Must be a positive integ-
-        er and must be a valid parse.
-    */
-    while (TRUE)
-    {
-        printf("Enter starvation prevention time (W): ");
-        if (scanf("%u", W) && *W > 0)
-            break;
-        printf("ERROR: Enter a positive integer\n");
-        while (getchar() != '\n')
-            ;
-    }
-}
 int main(int argc, char *argv[])
 {
     /*
@@ -196,8 +44,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "ERROR: Could not open \"%s\"\n", argv[1]);
         exit(EXIT_FAILURE);
     }
-
-    n = countTotalJobs(jobs);
+    printf("\n");
 
     /*
     SECTION X: OS DISPATCHER/SCHEDULER
@@ -210,7 +57,6 @@ int main(int argc, char *argv[])
         */
         if (countTotalJobs(jobs))
         {
-            printQueue(jobs);
             /*
             NOTE:
                 - Putting the first job in the JDQ where it belongs if it's time
@@ -272,64 +118,51 @@ int main(int argc, char *argv[])
         */
         if (countTotalJobs(zero))
         {
-            /*
-            NOTE:
-                - If the current process doesn't already exist or was previously
-                set to NULL, get the first level zero job and start running the 
-                process. 
-            */
-            if(!current_process){
-                current_process = dequeueBlock(&zero);
+            checkAndRunProcess(&current_process, zero, timer);
+            updateCycle(&current_process, &timer);
 
-                if(current_process->status == PCB_INITIALIZED){
-                    startBlock(current_process);
-                }else{
-                    resumeBlock(current_process);
-                }
-            }
-
-            /*
-            NOTE:
-                - Get how long the calling process should sleep for to let the
-                subprocess keep running.
-            */
-            int sleep_time = min(t0, current_process->remaining_cpu_time);
-            sleep(UNIT_CPU_TIME_SIM * sleep_time);
-
-            /*
-            NOTE:
-                - Update the timer with the time that the scheduler has slept
-                for. 
-            */
-            timer += sleep_time;
-
-            current_process->remaining_cpu_time -= sleep_time;
-
-            /*
-            NOTE:
-                - If there is not required CPU time left then we terminate the
-                process.
-            */
-            if (current_process->remaining_cpu_time <= 0)
+            if (!checkAndTerminate(&current_process, &zero))
             {
-                terminateBlock(current_process);
-                free(current_process);
-            }else{
-                /*
-                NOTE:
-                    - Demotion process includes setting the priority, suspending
-                    the block, and enqueue-ing it into the next demotion queue.
-                */
-                current_process->priority = PCB_PRIORITY_1;
-                suspendBlock(current_process);
-                one = enqueueBlock(one, current_process);
+                checkAndDemote(&current_process, t0, &zero, &one, PCB_PRIORITY_1);
             }
-
-            current_process = NULL;
 
             continue;
         }
-        
+
+        /*
+        NOTE:
+            - Handling level-1 queue.
+        */
+        if (countTotalJobs(one))
+        {
+            checkAndRunProcess(&current_process, one, timer);
+            updateCycle(&current_process, &timer);
+
+            if (!checkAndTerminate(&current_process, &one))
+            {
+                checkAndDemote(&current_process, t1, &one, &two, PCB_PRIORITY_2);
+            }
+
+            continue;
+        }
+
+        /*
+        NOTE:
+            - Handling level-2 queue.
+        */
+        if (countTotalJobs(two))
+        {
+            checkAndRunProcess(&current_process, two, timer);
+            updateCycle(&current_process, &timer);
+
+            if (!checkAndTerminate(&current_process, &two))
+            {
+                checkAndRequeue(&current_process, t2, &two);
+            }
+
+            continue;
+        }
+
         break;
     }
 }
