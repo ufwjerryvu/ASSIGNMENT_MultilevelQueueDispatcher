@@ -46,4 +46,21 @@ uint64_t countTotalJobs(Block* head);
 void printQueue(Block* head);
 int updateLevelQueues(Block** jdq, Block* zero, Block* one, Block* two);
 
+typedef struct{
+    uint64_t total_turnaround;
+    uint64_t total_waiting;
+    uint64_t total_response;
+    uint64_t completed_jobs;
+} Metrics;
+
+/*
+SECTION 5: HELPER FUNCTION DEFINITIONS
+*/
+int min(int a, int b){
+    return (a < b) ? a : b;
+}
+
+int max(int a, int b){
+    return (a > b) ? a : b;
+}
 #endif

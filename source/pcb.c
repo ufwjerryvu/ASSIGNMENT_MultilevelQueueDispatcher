@@ -239,7 +239,7 @@ RETURNS:
 */
 Block *printBlock(Block *p)
 {
-    printf("%7d%7d%9d%7d%13d%10d    ",
+    printf("%7d%7d%9d%11d%13d%10d    ",
            (int)p->pid, p->arrival_time, p->service_time,
            p->remaining_cpu_time, p->last_active_time, p->priority);
 
@@ -286,5 +286,5 @@ RETURNS:
 */
 void printBlockHeader()
 {
-    printf("    pid arrive  service    cpu  last_active  priority   status\n");
+    printf("    pid arrive  service  cpuremain  last_active  priority   status\n");
 }
