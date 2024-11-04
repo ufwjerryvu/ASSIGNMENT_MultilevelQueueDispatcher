@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     unsigned int t0, t1, t2, W;
 
     /*
-    SECTION X: ARGUMENT CHECKING
+    SECTION 1: ARGUMENT CHECKING
     */
     if (argc <= 0)
     {
@@ -31,12 +31,12 @@ int main(int argc, char *argv[])
     }
 
     /*
-    SECTION X: USER INPUT
+    SECTION 2: USER INPUT
     */
     getUserInput(&t0, &t1, &t2, &W);
 
     /*
-    SECTION X: JOB DISPATCH QUEUE (JDQ) INITIALIZATION
+    SECTION 3: JOB DISPATCH QUEUE (JDQ) INITIALIZATION
     */
     jobs = initializeJobDispatchQueue(argv[ARGS_JOBS_FILENAME]);
     if (!jobs)
@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
     printf("\n");
 
     /*
-    SECTION X: OS DISPATCHER/SCHEDULER
+    SECTION 4: OS DISPATCHER/SCHEDULER
     */
     while (TRUE)
     {
@@ -72,6 +72,7 @@ int main(int argc, char *argv[])
                     dequeue function will set `jobs` to NULL.
                 */
                 Block *dequeued = dequeueBlock(&jobs);
+                dequeued->last_queued = timer;
                 switch (dequeued->priority)
                 {
                 case PCB_PRIORITY_0:
@@ -112,6 +113,7 @@ int main(int argc, char *argv[])
             }
         }
 
+        checkAndHandleStarvation(&zero, &one, &two, timer, W);
         /*
         NOTE:
             - Handling level-0 queue.
@@ -123,7 +125,8 @@ int main(int argc, char *argv[])
 
             if (!checkAndTerminate(&current_process, &zero))
             {
-                checkAndDemote(&current_process, t0, &zero, &one, PCB_PRIORITY_1);
+                checkAndDemote(&current_process, t0, &zero, &one, PCB_PRIORITY_1,
+                    timer);
             }
 
             continue;
@@ -140,7 +143,8 @@ int main(int argc, char *argv[])
 
             if (!checkAndTerminate(&current_process, &one))
             {
-                checkAndDemote(&current_process, t1, &one, &two, PCB_PRIORITY_2);
+                checkAndDemote(&current_process, t1, &one, &two, PCB_PRIORITY_2,
+                    timer);
             }
 
             continue;
@@ -157,7 +161,7 @@ int main(int argc, char *argv[])
 
             if (!checkAndTerminate(&current_process, &two))
             {
-                checkAndRequeue(&current_process, t2, &two);
+                checkAndRequeue(&current_process, t2, &two, timer);
             }
 
             continue;

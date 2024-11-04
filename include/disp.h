@@ -151,7 +151,8 @@ void getUserInput(unsigned int *t0, unsigned int *t1, unsigned int *t2,
         if (scanf("%u", t0) && *t0 > 0)
             break;
         printf("ERROR: Enter a positive integer\n");
-        while (getchar() != '\n');
+        while (getchar() != '\n')
+            ;
     }
 
     /*
@@ -165,7 +166,8 @@ void getUserInput(unsigned int *t0, unsigned int *t1, unsigned int *t2,
         if (scanf("%u", t1) && *t1 > 0)
             break;
         printf("ERROR: Enter a positive integer\n");
-        while (getchar() != '\n');
+        while (getchar() != '\n')
+            ;
     }
 
     /*
@@ -179,7 +181,8 @@ void getUserInput(unsigned int *t0, unsigned int *t1, unsigned int *t2,
         if (scanf("%u", t2) && *t2 > 0)
             break;
         printf("ERROR: Enter a positive integer\n");
-        while (getchar() != '\n');
+        while (getchar() != '\n')
+            ;
     }
 
     /*
@@ -193,7 +196,8 @@ void getUserInput(unsigned int *t0, unsigned int *t1, unsigned int *t2,
         if (scanf("%u", W) && *W > 0)
             break;
         printf("ERROR: Enter a positive integer\n");
-        while (getchar() != '\n');
+        while (getchar() != '\n')
+            ;
     }
 }
 
@@ -225,8 +229,8 @@ int max(int a, int b)
 DESCRIPTION:
     - Checks whether the current process exists. If not, it will take the first
     element in the `queue` and run it. If the current process is not the one in
-    the current `queue` then we still run it anyway as we assume the order is 
-    maintained. 
+    the current `queue` then we still run it anyway as we assume the order is
+    maintained.
 
 RETURN:
     + Nothing. However, it does change the state of `current_process`. It switch-
@@ -250,8 +254,6 @@ void checkAndRunProcess(Block **current_process, Block *queue, int timer)
         {
             resumeBlock(*current_process);
         }
-
-        (*current_process)->last_active_time = timer;
     }
     else if ((*current_process) != queue)
     {
@@ -290,7 +292,7 @@ RETURN:
     + FALSE if not the case.
 */
 char checkAndDemote(Block **current_process, int quantum, Block **from, Block **to,
-                    int new_priority)
+                    int new_priority, int timer)
 {
 
     if ((*current_process)->cycle_time >= quantum)
@@ -305,7 +307,9 @@ char checkAndDemote(Block **current_process, int quantum, Block **from, Block **
         (*current_process)->cycle_time = 0;
 
         suspendBlock(*current_process);
-        *to = enqueueBlock(*to, dequeueBlock(from));
+        Block *dequeued = dequeueBlock(from);
+        dequeued->last_queued = timer;
+        *to = enqueueBlock(*to, dequeued);
 
         *current_process = NULL;
 
@@ -318,15 +322,18 @@ char checkAndDemote(Block **current_process, int quantum, Block **from, Block **
 /*
 DESCRIPTION:
     - Checks whether the currently running process has reached its time quantum.
-    This is a special case of demotion used for the last level queue where we 
+    This is a special case of demotion used for the last level queue where we
     just put whatever is in front of the queue to the end of the same queue.
 
 RETURN:
     + TRUE if has equalled or exceeded the time quantum.
     + FALSE if not the case.
 */
-char checkAndRequeue(Block **current_process, int quantum, Block **queue){
-    if((*current_process)->cycle_time >= quantum){
+char checkAndRequeue(Block **current_process, int quantum, Block **queue,
+                     int timer)
+{
+    if ((*current_process)->cycle_time >= quantum)
+    {
         (*current_process)->cycle_time = 0;
 
         /*
@@ -335,7 +342,8 @@ char checkAndRequeue(Block **current_process, int quantum, Block **queue){
             function instead. But this one is safe.
         */
         suspendBlock(*current_process);
-        *queue = enqueueBlock(*queue, dequeueBlock(queue));
+        Block *dequeued = dequeueBlock(queue);
+        *queue = enqueueBlock(*queue, dequeued);
 
         *current_process = NULL;
 
@@ -371,10 +379,73 @@ char checkAndTerminate(Block **current_process, Block **from)
 
         return TRUE;
     }
-    
+
     return FALSE;
 }
 
+
+/*
+DESCRIPTION:
+    - Checks for starvation using last_queued timestamp and promotes processes 
+    to L-0 if they've been queued for too long. Handles both L-1 and L-2 star-
+    vation cases.
+    
+RETURNS:
+    + Nothing. Changes its parameters, though.
+*/
+
+void checkAndHandleStarvation(Block **zero, Block **one, Block **two,
+                              uint64_t timer, unsigned int W)
+{
+    /*
+    NOTE:
+        - Checking level-1 queue jobs.
+    */
+    if (*one && (timer - (*one)->last_queued >= W))
+    {
+        /*
+        NOTE:
+            - Moving all level-1 queue jobs.
+        */
+        while (*one)
+        {
+            Block *process = dequeueBlock(one);
+            process->priority = PCB_PRIORITY_0;
+            process->last_queued = timer; 
+            *zero = enqueueBlock(*zero, process);
+        }
+
+        /*
+        NOTE:
+            - Moving all level-2 queue jobs.
+        */
+        while (*two)
+        {
+            Block *process = dequeueBlock(two);
+            process->priority = PCB_PRIORITY_0;
+            process->last_queued = timer; 
+            *zero = enqueueBlock(*zero, process);
+        }
+    }
+    /*
+    NOTE:
+        - Checking level-2 queue jobs.
+    */
+    else if (*two && (timer - (*two)->last_queued >= W))
+    {
+        /*
+        NOTE:
+            - Moving level-2 queue jobs.
+        */
+        while (*two)
+        {
+            Block *process = dequeueBlock(two);
+            process->priority = PCB_PRIORITY_0;
+            process->last_queued = timer;
+            *zero = enqueueBlock(*zero, process);
+        }
+    }
+}
 
 /*
 DESCRIPTION:
@@ -386,12 +457,12 @@ RETURN:
     + Nothing. But the pointer arguments passed into the function does change
     their states.
 */
-void updateCycle(Block **current_process, uint64_t *timer){
+void updateCycle(Block **current_process, uint64_t *timer)
+{
     sleep(UNIT_CPU_TIME_SIM);
     (*timer)++;
-    
+
     (*current_process)->cycle_time++;
     (*current_process)->remaining_cpu_time--;
 }
-
 #endif

@@ -29,7 +29,7 @@ Block *createNullBlock()
     block->arrival_time = 0;
     block->service_time = 0;
     block->remaining_cpu_time = 0;
-    block->last_active_time = 0;
+    block->last_queued = -1;
     block->cycle_time = 0;
     block->priority = 0;
 
@@ -242,9 +242,9 @@ RETURNS:
 */
 Block *printBlock(Block *p)
 {
-    printf("%7d%7d%9d%11d%13d%10d    ",
+    printf("%7d%7d%9d%12d%13d%10d    ",
            (int)p->pid, p->arrival_time, p->service_time,
-           p->remaining_cpu_time, p->last_active_time, p->priority);
+           p->remaining_cpu_time, p->last_queued, p->priority);
 
     switch (p->status)
     {
@@ -289,5 +289,5 @@ RETURNS:
 */
 void printBlockHeader()
 {
-    printf("    pid arrive  service  cpuremain  last_active  priority   status\n");
+    printf("    pid arrive  service  cpu_remain  last_queued  priority   status\n");
 }

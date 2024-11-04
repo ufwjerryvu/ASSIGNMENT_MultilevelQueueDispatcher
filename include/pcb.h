@@ -55,7 +55,7 @@ struct Process
     int arrival_time;
     int service_time;
     int remaining_cpu_time;
-    int last_active_time;
+    int last_queued;
     int cycle_time;
     
     int priority;
