@@ -375,6 +375,8 @@ char checkAndTerminate(Block **current_process, Block **from, uint64_t timer)
     {
         Block *dequeued = dequeueBlock(from);
         metrics.total_turnaround += (timer - dequeued->arrival_time);
+        metrics.total_waiting += (timer - dequeued->arrival_time - 
+                                    dequeued->service_time);
         terminateBlock(*current_process);
 
         /*
@@ -417,6 +419,7 @@ void checkAndHandleStarvation(Block **zero, Block **one, Block **two,
         while (*one)
         {
             Block *process = dequeueBlock(one);
+            process->cycle_time = 0;
             process->priority = PCB_PRIORITY_0;
             process->last_queued = timer;
             *zero = enqueueBlock(*zero, process);
@@ -429,6 +432,7 @@ void checkAndHandleStarvation(Block **zero, Block **one, Block **two,
         while (*two)
         {
             Block *process = dequeueBlock(two);
+            process->cycle_time = 0;
             process->priority = PCB_PRIORITY_0;
             process->last_queued = timer;
             *zero = enqueueBlock(*zero, process);
@@ -447,6 +451,7 @@ void checkAndHandleStarvation(Block **zero, Block **one, Block **two,
         while (*two)
         {
             Block *process = dequeueBlock(two);
+            process->cycle_time = 0;
             process->priority = PCB_PRIORITY_0;
             process->last_queued = timer;
             *zero = enqueueBlock(*zero, process);
@@ -466,7 +471,7 @@ RETURN:
 */
 void updateCycle(Block **current_process, uint64_t *timer)
 {
-    sleep(UNIT_CPU_TIME_SIM);
+    // sleep(UNIT_CPU_TIME_SIM);
     (*timer)++;
 
     (*current_process)->cycle_time++;

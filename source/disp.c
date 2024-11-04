@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
                     - Increase the timer.
                 */
                 timer++;
-                sleep(UNIT_CPU_TIME_SIM);
+                // sleep(UNIT_CPU_TIME_SIM);
                 continue;
             }
         }
@@ -172,6 +172,7 @@ int main(int argc, char *argv[])
         break;
     }
 
-    printf("Average turnaround time: %f\n", ((float)metrics.total_turnaround / (float)metrics.completed_jobs));
+    printf("Average turnaround time: %f\n", ((float)metrics.total_turnaround / ((float)metrics.completed_jobs)));
+    printf("Average waiting time: %f\n", ((float)metrics.total_waiting / (float)metrics.completed_jobs));
     printf("Average response time: %f\n", ((float)metrics.total_response / (float)metrics.completed_jobs));
 }
