@@ -236,7 +236,7 @@ RETURN:
     + Nothing. However, it does change the state of `current_process`. It switch-
     es to something else.
 */
-void checkAndRunProcess(Block **current_process, Block *queue, int timer)
+void checkAndRunProcess(Block **current_process, Block *queue, uint64_t timer)
 {
     if (!(*current_process))
     {
@@ -292,7 +292,7 @@ RETURN:
     + FALSE if not the case.
 */
 char checkAndDemote(Block **current_process, int quantum, Block **from, Block **to,
-                    int new_priority, int timer)
+                    int new_priority, uint64_t timer)
 {
 
     if ((*current_process)->cycle_time >= quantum)
@@ -330,7 +330,7 @@ RETURN:
     + FALSE if not the case.
 */
 char checkAndRequeue(Block **current_process, int quantum, Block **queue,
-                     int timer)
+                    uint64_t timer)
 {
     if ((*current_process)->cycle_time >= quantum)
     {
@@ -343,6 +343,7 @@ char checkAndRequeue(Block **current_process, int quantum, Block **queue,
         */
         suspendBlock(*current_process);
         Block *dequeued = dequeueBlock(queue);
+        dequeued->last_queued = timer;
         *queue = enqueueBlock(*queue, dequeued);
 
         *current_process = NULL;

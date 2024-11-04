@@ -15,6 +15,7 @@ int main(int argc, char *argv[])
 
     Metrics metrics;
     unsigned int t0, t1, t2, W;
+    unsigned int w1 = 0, w2 = 0;
 
     /*
     SECTION 1: ARGUMENT CHECKING
@@ -114,6 +115,7 @@ int main(int argc, char *argv[])
         }
 
         checkAndHandleStarvation(&zero, &one, &two, timer, W);
+
         /*
         NOTE:
             - Handling level-0 queue.
@@ -163,7 +165,7 @@ int main(int argc, char *argv[])
             {
                 checkAndRequeue(&current_process, t2, &two, timer);
             }
-
+            
             continue;
         }
 
