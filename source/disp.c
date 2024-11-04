@@ -13,7 +13,6 @@ int main(int argc, char *argv[])
     uint64_t n = 0;
     uint64_t timer = 0;
 
-    Metrics metrics;
     unsigned int t0, t1, t2, W;
     unsigned int w1 = 0, w2 = 0;
 
@@ -46,6 +45,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     printf("\n");
+    metrics.completed_jobs = countTotalJobs(jobs);
 
     /*
     SECTION 4: OS DISPATCHER/SCHEDULER
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
             checkAndRunProcess(&current_process, zero, timer);
             updateCycle(&current_process, &timer);
 
-            if (!checkAndTerminate(&current_process, &zero))
+            if (!checkAndTerminate(&current_process, &zero, timer))
             {
                 checkAndDemote(&current_process, t0, &zero, &one, PCB_PRIORITY_1,
                     timer);
@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
             checkAndRunProcess(&current_process, one, timer);
             updateCycle(&current_process, &timer);
 
-            if (!checkAndTerminate(&current_process, &one))
+            if (!checkAndTerminate(&current_process, &one, timer))
             {
                 checkAndDemote(&current_process, t1, &one, &two, PCB_PRIORITY_2,
                     timer);
@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
             checkAndRunProcess(&current_process, two, timer);
             updateCycle(&current_process, &timer);
 
-            if (!checkAndTerminate(&current_process, &two))
+            if (!checkAndTerminate(&current_process, &two, timer))
             {
                 checkAndRequeue(&current_process, t2, &two, timer);
             }
@@ -171,4 +171,7 @@ int main(int argc, char *argv[])
 
         break;
     }
+
+    printf("Average turnaround time: %f\n", ((float)metrics.total_turnaround / (float)metrics.completed_jobs));
+    printf("Average response time: %f\n", ((float)metrics.total_response / (float)metrics.completed_jobs));
 }

@@ -49,6 +49,8 @@ typedef struct
     uint64_t completed_jobs;
 } Metrics;
 
+Metrics metrics;
+
 /*
 DESCRIPTION:
     - Reads the job dispatch queue from the jobs file and stores it in a queue.
@@ -249,6 +251,8 @@ void checkAndRunProcess(Block **current_process, Block *queue, uint64_t timer)
         if ((*current_process)->status == PCB_INITIALIZED)
         {
             startBlock(*current_process);
+            metrics.total_response += (timer -
+                                         (*current_process)->arrival_time);
         }
         else
         {
@@ -271,6 +275,8 @@ void checkAndRunProcess(Block **current_process, Block *queue, uint64_t timer)
         if ((*current_process)->status == PCB_INITIALIZED)
         {
             startBlock(*current_process);
+            metrics.total_response += (timer -
+                                         (*current_process)->arrival_time);
         }
         else
         {
@@ -330,7 +336,7 @@ RETURN:
     + FALSE if not the case.
 */
 char checkAndRequeue(Block **current_process, int quantum, Block **queue,
-                    uint64_t timer)
+                     uint64_t timer)
 {
     if ((*current_process)->cycle_time >= quantum)
     {
@@ -363,11 +369,12 @@ RETURN:
     + TRUE if job has finished.
     + FALSE if not the case.
 */
-char checkAndTerminate(Block **current_process, Block **from)
+char checkAndTerminate(Block **current_process, Block **from, uint64_t timer)
 {
     if ((*current_process)->remaining_cpu_time <= 0)
     {
-        dequeueBlock(from);
+        Block *dequeued = dequeueBlock(from);
+        metrics.total_turnaround += (timer - dequeued->arrival_time);
         terminateBlock(*current_process);
 
         /*
@@ -384,13 +391,12 @@ char checkAndTerminate(Block **current_process, Block **from)
     return FALSE;
 }
 
-
 /*
 DESCRIPTION:
-    - Checks for starvation using last_queued timestamp and promotes processes 
+    - Checks for starvation using last_queued timestamp and promotes processes
     to L-0 if they've been queued for too long. Handles both L-1 and L-2 star-
     vation cases.
-    
+
 RETURNS:
     + Nothing. Changes its parameters, though.
 */
@@ -402,7 +408,7 @@ void checkAndHandleStarvation(Block **zero, Block **one, Block **two,
     NOTE:
         - Checking level-1 queue jobs.
     */
-    if (*one && (timer - (*one)->last_queued >= W))
+    if (*one && (timer - (*one)->last_queued - (*one)->cycle_time >= W))
     {
         /*
         NOTE:
@@ -412,7 +418,7 @@ void checkAndHandleStarvation(Block **zero, Block **one, Block **two,
         {
             Block *process = dequeueBlock(one);
             process->priority = PCB_PRIORITY_0;
-            process->last_queued = timer; 
+            process->last_queued = timer;
             *zero = enqueueBlock(*zero, process);
         }
 
@@ -424,7 +430,7 @@ void checkAndHandleStarvation(Block **zero, Block **one, Block **two,
         {
             Block *process = dequeueBlock(two);
             process->priority = PCB_PRIORITY_0;
-            process->last_queued = timer; 
+            process->last_queued = timer;
             *zero = enqueueBlock(*zero, process);
         }
     }
@@ -432,7 +438,7 @@ void checkAndHandleStarvation(Block **zero, Block **one, Block **two,
     NOTE:
         - Checking level-2 queue jobs.
     */
-    else if (*two && (timer - (*two)->last_queued >= W))
+    else if (*two && (timer - (*two)->last_queued - (*two)->cycle_time >= W))
     {
         /*
         NOTE:
