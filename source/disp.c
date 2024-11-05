@@ -58,44 +58,7 @@ int main(int argc, char *argv[])
         */
         if (countTotalJobs(jobs))
         {
-            /*
-            NOTE:
-                - Putting the first job in the JDQ where it belongs if it's time
-                for it to arrive.
-            */
-            while (jobs && timer >= jobs->arrival_time)
-            {
-                /*
-                NOTE:
-                    - When dequeueing blocks, we need to pass in the address of
-                    the pointer `jobs`. This will effectively modify the value
-                    of `jobs` itself. If there's nothing left in the queue, the
-                    dequeue function will set `jobs` to NULL.
-                */
-                Block *dequeued = dequeueBlock(&jobs);
-                dequeued->last_queued = timer;
-                switch (dequeued->priority)
-                {
-                case PCB_PRIORITY_0:
-                    zero = enqueueBlock(zero, dequeued);
-                    break;
-                case PCB_PRIORITY_1:
-                    one = enqueueBlock(one, dequeued);
-                    break;
-                case PCB_PRIORITY_2:
-                    two = enqueueBlock(two, dequeued);
-                    break;
-                default:
-                    /*
-                    NOTE:
-                        - Re-enqueue if jobs cannot be categorized. Hopefully this
-                        doesn't happen.
-                    */
-                    jobs = enqueueBlock(jobs, dequeued);
-                    break;
-                }
-            }
-
+            queueFromDispatch(&jobs, &zero, &one, &two, timer);
             /*
             NOTE:
                 - If nothing are in the other queues then we just idle wait for
@@ -109,7 +72,7 @@ int main(int argc, char *argv[])
                     - Increase the timer.
                 */
                 timer++;
-                // sleep(UNIT_CPU_TIME_SIM);
+                sleep(UNIT_CPU_TIME_SIM);
                 continue;
             }
         }
@@ -127,8 +90,9 @@ int main(int argc, char *argv[])
 
             if (!checkAndTerminate(&current_process, &zero, timer))
             {
+                queueFromDispatch(&jobs, &zero, &one, &two, timer);
                 checkAndDemote(&current_process, t0, &zero, &one, PCB_PRIORITY_1,
-                    timer);
+                               timer);
             }
 
             continue;
@@ -145,8 +109,9 @@ int main(int argc, char *argv[])
 
             if (!checkAndTerminate(&current_process, &one, timer))
             {
+                queueFromDispatch(&jobs, &zero, &one, &two, timer);
                 checkAndDemote(&current_process, t1, &one, &two, PCB_PRIORITY_2,
-                    timer);
+                               timer);
             }
 
             continue;
@@ -163,16 +128,18 @@ int main(int argc, char *argv[])
 
             if (!checkAndTerminate(&current_process, &two, timer))
             {
-                checkAndRequeue(&current_process, t2, &two, timer);
+                queueFromDispatch(&jobs, &zero, &one, &two, timer);
+                checkAndDemote(&current_process, t2, &two, &two, PCB_PRIORITY_2,
+                               timer);
             }
-            
+
             continue;
         }
 
         break;
     }
 
-    printf("Average turnaround time: %f\n", ((float)metrics.total_turnaround / ((float)metrics.completed_jobs)));
-    printf("Average waiting time: %f\n", ((float)metrics.total_waiting / (float)metrics.completed_jobs));
-    printf("Average response time: %f\n", ((float)metrics.total_response / (float)metrics.completed_jobs));
+    printf("Average turnaround time: %.3f\n", ((float)metrics.total_turnaround / ((float)metrics.completed_jobs)));
+    printf("Average waiting time: %.3f\n", ((float)metrics.total_waiting / (float)metrics.completed_jobs));
+    printf("Average response time: %.3f\n", ((float)metrics.total_response / (float)metrics.completed_jobs));
 }

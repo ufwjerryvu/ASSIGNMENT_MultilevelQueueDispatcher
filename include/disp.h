@@ -203,6 +203,48 @@ void getUserInput(unsigned int *t0, unsigned int *t1, unsigned int *t2,
     }
 }
 
+void queueFromDispatch(Block **jobs, Block **zero, Block **one, Block **two,
+                       uint64_t timer)
+{
+    /*
+    NOTE:
+        - Putting the first job in the JDQ where it belongs if it's time
+        for it to arrive.
+    */
+    while ((*jobs) && timer >= (*jobs)->arrival_time)
+    {
+        /*
+        NOTE:
+            - When dequeueing blocks, we need to pass in the address of
+            the pointer `jobs`. This will effectively modify the value
+            of `jobs` itself. If there's nothing left in the queue, the
+            dequeue function will set `jobs` to NULL.
+        */
+        Block *dequeued = dequeueBlock(jobs);
+        dequeued->last_queued = timer;
+        switch (dequeued->priority)
+        {
+        case PCB_PRIORITY_0:
+            *zero = enqueueBlock(*zero, dequeued);
+            break;
+        case PCB_PRIORITY_1:
+            *one = enqueueBlock(*one, dequeued);
+            break;
+        case PCB_PRIORITY_2:
+            *two = enqueueBlock(*two, dequeued);
+            break;
+        default:
+            /*
+            NOTE:
+                - Re-enqueue if jobs cannot be categorized. Hopefully this
+                doesn't happen.
+            */
+            *jobs = enqueueBlock(*jobs, dequeued);
+            break;
+        }
+    }
+}
+
 /*
 DESCRIPTION:
     - Compares `a` and `b` and returns whichever one is smaller.
@@ -252,7 +294,7 @@ void checkAndRunProcess(Block **current_process, Block *queue, uint64_t timer)
         {
             startBlock(*current_process);
             metrics.total_response += (timer -
-                                         (*current_process)->arrival_time);
+                                       (*current_process)->arrival_time);
         }
         else
         {
@@ -276,7 +318,7 @@ void checkAndRunProcess(Block **current_process, Block *queue, uint64_t timer)
         {
             startBlock(*current_process);
             metrics.total_response += (timer -
-                                         (*current_process)->arrival_time);
+                                       (*current_process)->arrival_time);
         }
         else
         {
@@ -300,7 +342,6 @@ RETURN:
 char checkAndDemote(Block **current_process, int quantum, Block **from, Block **to,
                     int new_priority, uint64_t timer)
 {
-
     if ((*current_process)->cycle_time >= quantum)
     {
         (*current_process)->priority = new_priority;
@@ -327,41 +368,6 @@ char checkAndDemote(Block **current_process, int quantum, Block **from, Block **
 
 /*
 DESCRIPTION:
-    - Checks whether the currently running process has reached its time quantum.
-    This is a special case of demotion used for the last level queue where we
-    just put whatever is in front of the queue to the end of the same queue.
-
-RETURN:
-    + TRUE if has equalled or exceeded the time quantum.
-    + FALSE if not the case.
-*/
-char checkAndRequeue(Block **current_process, int quantum, Block **queue,
-                     uint64_t timer)
-{
-    if ((*current_process)->cycle_time >= quantum)
-    {
-        (*current_process)->cycle_time = 0;
-
-        /*
-        NOTE:
-            - From the same queue. I reckon we could've just reused the previous
-            function instead. But this one is safe.
-        */
-        suspendBlock(*current_process);
-        Block *dequeued = dequeueBlock(queue);
-        dequeued->last_queued = timer;
-        *queue = enqueueBlock(*queue, dequeued);
-
-        *current_process = NULL;
-
-        return TRUE;
-    }
-
-    return FALSE;
-}
-
-/*
-DESCRIPTION:
     - Checks whether the currently running process has completed. We terminate
     the job and delete it from existence.
 
@@ -375,8 +381,8 @@ char checkAndTerminate(Block **current_process, Block **from, uint64_t timer)
     {
         Block *dequeued = dequeueBlock(from);
         metrics.total_turnaround += (timer - dequeued->arrival_time);
-        metrics.total_waiting += (timer - dequeued->arrival_time - 
-                                    dequeued->service_time);
+        metrics.total_waiting += (timer - dequeued->arrival_time -
+                                  dequeued->service_time);
         terminateBlock(*current_process);
 
         /*
@@ -471,7 +477,7 @@ RETURN:
 */
 void updateCycle(Block **current_process, uint64_t *timer)
 {
-    // sleep(UNIT_CPU_TIME_SIM);
+    sleep(UNIT_CPU_TIME_SIM);
     (*timer)++;
 
     (*current_process)->cycle_time++;
