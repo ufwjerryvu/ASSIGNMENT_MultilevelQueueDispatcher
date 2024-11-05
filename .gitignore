@@ -8,3 +8,4 @@ auxiliary/
 dispatcher
 process
 random
+.gitignore

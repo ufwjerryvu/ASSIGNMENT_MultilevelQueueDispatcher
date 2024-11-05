@@ -3,12 +3,13 @@ SRC_DIR=source
 INCL_DIR=include
 AUX_DIR=auxiliary
 TESTS_DIR=tests
+SEEDS_DIR=seeds
 IN_FILE_NO=1
 
 SRC_FILES=$(SRC_DIR)/pcb.c $(SRC_DIR)/disp.c
 
 # Compiles and does everything except for running and cleaning
-all: CompileProcess CompileDispatcher GenerateRandom
+all: CompileProcess CompileDispatcher
 
 # Compiles the signal trapping process.
 CompileProcess:
@@ -26,7 +27,7 @@ ExecuteProgram: all
 # Generates random jobs list based on the numbered inputs
 GenerateRandom:
 	$(CC) $(SRC_DIR)/random.c -lm -o random
-	cat $(TESTS_DIR)/params-$(IN_FILE_NO).in | ./random jobs.txt > /dev/null
+	cat $(SEEDS_DIR)/params-$(IN_FILE_NO).in | ./random jobs.txt > /dev/null
 
 # Cleans all generated files
 CleanAll: CleanObjs CleanBins CleanJobs
