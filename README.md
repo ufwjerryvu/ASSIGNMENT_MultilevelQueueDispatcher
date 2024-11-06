@@ -1,6 +1,8 @@
 # Multi-level Queue Dispatcher
-COMP3520
 The University of Sydney
+
+COMP3520 2024S2
+
 SID: 510156033
 
 ## Overview
